@@ -313,24 +313,23 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
     with st.container(border=True):
 
-        col1, col2 = st.columns([4, 1])
+    st.caption(badge)
 
-        with col1:
-            st.caption(badge)
-            st.markdown(f"### {row['Corso']}")
-            st.caption(f"{row['Università']} • {row['Codice']}")
+    st.markdown(f"### {row['Corso']}")
 
-            if cfu_mancanti == 0:
-                st.success("✅ Non risultano CFU mancanti")
-            else:
-                st.warning(f"⚠️ Ti mancano **{cfu_mancanti:.0f} CFU**")
+    st.caption(f"{row['Università']} • {row['Codice']}")
 
-            st.caption(status_message)
-            st.link_button("Scopri il corso", "https://www.google.com")
+    st.markdown(f"### {match_badge}")
 
-        with col2:
-            st.metric("Compatibilità", f"{row['Compatibilità']}%")
-            st.markdown(match_badge)
+    if cfu_mancanti == 0:
+        st.success("✅ Nessun CFU mancante")
+    else:
+        st.warning(f"⚠️ Ti mancano {cfu_mancanti:.0f} CFU")
+
+    st.link_button(
+        "Scopri il corso",
+        "https://www.google.com"
+    )
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
