@@ -183,8 +183,28 @@ if input_mode == "Scelgo una laurea dal database":
     profile = build_profile_from_course(selected_degree)
 
 else:
-    st.info("Qui inseriremo manualmente i tuoi CFU per SSD.")
-    profile = None
+    st.subheader("Inserisci manualmente i tuoi CFU")
+
+    manual_cfu = {}
+
+    for ssd in ssd_cols:
+        value = st.number_input(
+            ssd,
+            min_value=0.0,
+            max_value=60.0,
+            value=0.0,
+            step=1.0
+        )
+
+        if value > 0:
+            manual_cfu[ssd] = value
+
+    profile = {
+        "course": "Percorso inserito manualmente",
+        "code": "MANUALE",
+        "total_cfu": sum(manual_cfu.values()),
+        "cfu": manual_cfu
+    }
 
 if profile is None:
     st.stop()
