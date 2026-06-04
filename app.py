@@ -23,9 +23,13 @@ trieste_programs = programs[
     (programs["Anno"] == "2024/2025")
 ].copy()
 
-trieste_requirements = requirements[
-    requirements["Università"] == "Università degli studi di Trieste"
-].copy()
+catalog_mode = st.radio(
+    "Quali percorsi vuoi esplorare?",
+    ["Magistrali Trieste", "Magistrali Online"]
+)
+
+if catalog_mode == "Magistrali Online":
+    trieste_requirements = online_requirements.copy()
 
 metadata_cols = [
     "Università", "Anno", "Tipo", "Codice CDL", "Nome CDL",
