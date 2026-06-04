@@ -297,65 +297,77 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
     cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
     if row["Compatibilità"] == 100:
-        match_color = "🟢"
-        match_text = "Accesso pienamente compatibile"
+        match_badge = "🟢 MATCH 100%"
+        status_message = "Accesso pienamente compatibile"
     elif row["Compatibilità"] >= 80:
-        match_color = "🟡"
-        match_text = "Ti mancano pochi CFU"
+        match_badge = f"🟡 MATCH {row['Compatibilità']}%"
+        status_message = "Ti mancano pochi CFU"
     elif row["Compatibilità"] >= 40:
-        match_color = "🟠"
-        match_text = "Percorso interessante, ma da integrare"
+        match_badge = f"🟠 MATCH {row['Compatibilità']}%"
+        status_message = "Percorso interessante, ma da integrare"
     else:
-        match_color = "🔴"
-        match_text = "Richiede più integrazioni"
+        match_badge = f"🔴 MATCH {row['Compatibilità']}%"
+        status_message = "Richiede più integrazioni"
 
-    if index < 3:
-        badge = medals[index]
-    else:
-        badge = "🎓 Opportunità formativa"
+    badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
     with st.container(border=True):
-        col_left, col_right = st.columns([3, 1])
 
-        with col_left:
-            st.markdown(f"**{badge}**")
-            st.markdown(f"### {row['Corso']}")
-            st.caption(f"{row['Università']} • {row['Codice']}")
-            st.markdown(
-                "Diventa professionista in un percorso magistrale coerente "
-                "con i CFU che hai già acquisito."
-            )
+        st.markdown(f"**{badge}**")
 
-            if cfu_mancanti == 0:
-                st.success("✅ Non risultano CFU mancanti")
-            else:
-                st.warning(f"⚠️ Ti mancano solo **{cfu_mancanti:.0f} CFU**")
-
-            st.link_button("Scopri il corso", "https://www.google.com")
-
-        with col_right:
-            st.markdown(
-                f"""
-                <div style="
-                    text-align:center;
-                    border-radius:14px;
-                    padding:14px 8px;
-                    background-color:#f8fafc;
-                    border:1px solid #e5e7eb;
-                ">
-                    <div style="font-size:42px;">{match_color}</div>
-                    <div style="font-size:42px; font-weight:800;">
-                        {row['Compatibilità']}%
+        st.markdown(
+            f"""
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                gap:20px;
+                margin-top:4px;
+            ">
+                <div>
+                    <div style="
+                        font-size:24px;
+                        font-weight:800;
+                        line-height:1.25;
+                        color:#111827;
+                    ">
+                        {row['Corso']}
                     </div>
-                    <div style="font-size:12px; color:#6b7280;">
-                        MATCH
+                    <div style="
+                        font-size:13px;
+                        color:#6b7280;
+                        margin-top:6px;
+                    ">
+                        {row['Università']} • {row['Codice']}
                     </div>
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
 
-            st.caption(match_text)
+                <div style="
+                    min-width:130px;
+                    text-align:center;
+                    font-size:18px;
+                    font-weight:800;
+                    padding:8px 12px;
+                    border-radius:999px;
+                    background-color:#f9fafb;
+                    border:1px solid #e5e7eb;
+                    color:#111827;
+                ">
+                    {match_badge}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if cfu_mancanti == 0:
+            st.success("✅ Non risultano CFU mancanti")
+        else:
+            st.warning(f"⚠️ Ti mancano **{cfu_mancanti:.0f} CFU**")
+
+        st.caption(status_message)
+
+        st.link_button("Scopri il corso", "https://www.google.com")
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
