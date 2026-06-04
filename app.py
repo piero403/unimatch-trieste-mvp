@@ -315,7 +315,7 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
         badge = "🎓 Opportunità formativa"
 
     with st.container(border=True):
-        col_left, col_right = st.columns([4, 1])
+        col_left, col_right = st.columns([3, 1])
 
         with col_left:
             st.markdown(f"**{badge}**")
@@ -343,8 +343,8 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
                     background-color:#f8fafc;
                     border:1px solid #e5e7eb;
                 ">
-                    <div style="font-size:28px;">{match_color}</div>
-                    <div style="font-size:28px; font-weight:800;">
+                    <div style="font-size:42px;">{match_color}</div>
+                    <div style="font-size:42px; font-weight:800;">
                         {row['Compatibilità']}%
                     </div>
                     <div style="font-size:12px; color:#6b7280;">
