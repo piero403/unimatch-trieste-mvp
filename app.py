@@ -285,15 +285,38 @@ ranking_view = ranking[[
     "CFU richiesti"
 ]].head(20)
 
-st.dataframe(
-    ranking_view.style.bar(
-        subset=["Compatibilità"],
-        vmin=0,
-        vmax=100
-    ),
-    use_container_width=True,
-    hide_index=True
-)
+# st.dataframe(
+#     ranking_view.style.bar(
+#         subset=["Compatibilità"],
+#         vmin=0,
+#         vmax=100
+#     ),
+#     use_container_width=True,
+#     hide_index=True
+# )
+for _, row in ranking.head(10).iterrows():
+
+    st.markdown("---")
+
+    col1, col2 = st.columns([4, 1])
+
+    with col1:
+        st.markdown(f"### {row['Corso']}")
+        st.write(f"🏛️ {row['Università']}")
+        st.write(f"📘 {row['Codice']}")
+
+    with col2:
+        st.metric(
+            "Compatibilità",
+            f"{row['Compatibilità']}%"
+        )
+
+    if row["Compatibilità"] == 100:
+        st.success("Accesso pienamente compatibile")
+    elif row["Compatibilità"] >= 80:
+        st.info("Ti mancano pochi CFU")
+    else:
+        st.warning("Verifica i requisiti mancanti")
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
