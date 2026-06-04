@@ -266,11 +266,22 @@ ranking = rank_masters_for_profile(profile)
 
 st.subheader("2. Il tuo profilo CFU")
 
-col1, col2, col3 = st.columns(3)
-
-col1.metric("Corso", profile["course"])
-col2.metric("Codice", profile["code"])
-col3.metric("CFU totali", profile["total_cfu"])
+st.markdown(
+    f"""
+    <div style="
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:14px 18px;
+        margin:20px 0;
+        background-color:#f9fafb;
+    ">
+        <div style="font-size:15px; color:#6b7280;">Profilo analizzato</div>
+        <div style="font-size:24px; font-weight:700;">🎓 {profile['course']} <span style="color:#6b7280;">({profile['code']})</span></div>
+        <div style="font-size:14px; color:#6b7280;">Attendibilità stimata: 85% · Per precisione massima inserisci i tuoi CFU</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.subheader("3. Le magistrali più compatibili per te")
 st.caption("Ordinate automaticamente in base ai requisiti soddisfatti")
