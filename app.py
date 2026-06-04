@@ -318,11 +318,23 @@ for _, row in ranking.head(10).iterrows():
     unsafe_allow_html=True
 )
 
-    with col2:
-        st.metric(
-            "Compatibilità",
-            f"{row['Compatibilità']}%"
-        )
+    st.markdown(
+    f"""
+    <div style="
+        border:1px solid #ddd;
+        border-radius:15px;
+        padding:20px;
+        margin-bottom:15px;
+        background-color:#fafafa;
+    ">
+        <h3>{row['Corso']}</h3>
+        <p>🏛️ <b>{row['Università']}</b></p>
+        <p>📘 {row['Codice']}</p>
+        <h2>🎯 Compatibilità {row['Compatibilità']}%</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
     if row["Compatibilità"] == 100:
         st.success("Accesso pienamente compatibile")
