@@ -296,40 +296,36 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
     cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
-    if row["Compatibilità"] == 100:
-        match_badge = "🟢 MATCH 100%"
-        status_message = "Accesso pienamente compatibile"
-    elif row["Compatibilità"] >= 80:
+    if row["Compatibilità"] >= 80:
+        match_badge = f"🟢 MATCH {row['Compatibilità']}%"
+    elif row["Compatibilità"] >= 50:
         match_badge = f"🟡 MATCH {row['Compatibilità']}%"
-        status_message = "Ti mancano pochi CFU"
-    elif row["Compatibilità"] >= 40:
+    elif row["Compatibilità"] >= 30:
         match_badge = f"🟠 MATCH {row['Compatibilità']}%"
-        status_message = "Percorso interessante, ma da integrare"
     else:
         match_badge = f"🔴 MATCH {row['Compatibilità']}%"
-        status_message = "Richiede più integrazioni"
 
     badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
     with st.container(border=True):
 
-    st.caption(badge)
+        st.caption(badge)
 
-    st.markdown(f"### {row['Corso']}")
+        st.markdown(f"### {row['Corso']}")
 
-    st.caption(f"{row['Università']} • {row['Codice']}")
+        st.caption(f"{row['Università']}")
 
-    st.markdown(f"### {match_badge}")
+        st.markdown(f"**{match_badge}**")
 
-    if cfu_mancanti == 0:
-        st.success("✅ Nessun CFU mancante")
-    else:
-        st.warning(f"⚠️ Ti mancano {cfu_mancanti:.0f} CFU")
+        if cfu_mancanti == 0:
+            st.success("✅ Nessun CFU mancante")
+        else:
+            st.warning(f"⚠️ Ti mancano {cfu_mancanti:.0f} CFU")
 
-    st.link_button(
-        "Scopri il corso",
-        "https://www.google.com"
-    )
+        st.link_button(
+            "Scopri il corso",
+            "https://www.google.com"
+        )
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
