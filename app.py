@@ -211,7 +211,8 @@ st.info(
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
 )
 
-st.subheader("Dettaglio mancanze")
+st.subheader("4. Dettaglio requisiti mancanti")
+st.caption("Seleziona una magistrale per vedere quali CFU mancano")
 
 selected_master = st.selectbox(
     "Seleziona magistrale",
@@ -220,10 +221,13 @@ selected_master = st.selectbox(
 
 course = ranking[ranking["Corso"] == selected_master].iloc[0]
 
-st.write("Magistrale:", course["Corso"])
-st.write("Stato:", course["Stato"])
-st.write("Compatibilità:", str(course["Compatibilità"]) + "%")
-st.write("CFU:", str(course["CFU coperti"]) + " / " + str(course["CFU richiesti"]))
+st.markdown(f"### {course['Corso']}")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Stato", course["Stato"])
+col2.metric("Compatibilità", str(course["Compatibilità"]) + "%")
+col3.metric("CFU coperti", str(course["CFU coperti"]) + " / " + str(course["CFU richiesti"]))
 
 if len(course["Mancanze"]) == 0:
     st.success("Nessuna mancanza rilevata")
