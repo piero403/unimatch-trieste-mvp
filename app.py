@@ -198,7 +198,11 @@ ranking_view = ranking[[
 ]].head(20)
 
 st.dataframe(
-    ranking_view,
+    ranking_view.style.bar(
+        subset=["Compatibilità"],
+        vmin=0,
+        vmax=100
+    ),
     use_container_width=True,
     hide_index=True
 )
