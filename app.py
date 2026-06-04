@@ -301,9 +301,22 @@ for _, row in ranking.head(10).iterrows():
     col1, col2 = st.columns([4, 1])
 
     with col1:
-        st.markdown(f"### {row['Corso']}")
-        st.write(f"🏛️ {row['Università']}")
-        st.write(f"📘 {row['Codice']}")
+        st.markdown(
+    f"""
+    <div style="
+        border:1px solid #ddd;
+        border-radius:15px;
+        padding:20px;
+        margin-bottom:15px;
+        background-color:#fafafa;
+    ">
+        <h3>{row['Corso']}</h3>
+        <p>🏛️ <b>{row['Università']}</b></p>
+        <p>📘 {row['Codice']}</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
     with col2:
         st.metric(
