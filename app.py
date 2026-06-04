@@ -184,20 +184,29 @@ if input_mode == "Scelgo una laurea dal database":
 
 else:
     st.subheader("Inserisci manualmente i tuoi CFU")
+    st.caption("Aggiungi solo gli SSD che hai nel tuo piano di studi.")
+
+    manual_rows = st.data_editor(
+        pd.DataFrame([
+            {"SSD": "", "CFU": 0.0},
+            {"SSD": "", "CFU": 0.0},
+            {"SSD": "", "CFU": 0.0},
+            {"SSD": "", "CFU": 0.0},
+            {"SSD": "", "CFU": 0.0}
+        ]),
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True
+    )
 
     manual_cfu = {}
 
-    for ssd in ssd_cols:
-        value = st.number_input(
-            ssd,
-            min_value=0.0,
-            max_value=60.0,
-            value=0.0,
-            step=1.0
-        )
+    for _, row in manual_rows.iterrows():
+        ssd = str(row["SSD"]).strip().upper()
+        cfu = row["CFU"]
 
-        if value > 0:
-            manual_cfu[ssd] = value
+        if ssd != "" and pd.notna(cfu) and cfu > 0:
+            manual_cfu[ssd] = float(cfu)
 
     profile = {
         "course": "Percorso inserito manualmente",
