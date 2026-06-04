@@ -67,6 +67,7 @@ def build_profile_from_course(course_name):
 def extract_credit_requirements(row):
     credit_requirements = []
 
+    # Formato vecchio: Requisito1 / Valore1
     for i in range(1, 13):
         req_col = f"Requisito{i}"
         val_col = f"Valore{i}"
@@ -74,6 +75,22 @@ def extract_credit_requirements(row):
         if req_col in row and val_col in row:
             if row[req_col] == "Crediti" and pd.notna(row[val_col]):
                 credit_requirements.append(row[val_col])
+
+    # Formato nuovo: Requisito SSD / Requisito CFU
+    for i in range(0, 12):
+        if i == 0:
+            ssd_col = "Requisito SSD"
+            cfu_col = "Requisito CFU"
+        else:
+            ssd_col = f"Requisito SSD.{i}"
+            cfu_col = f"Requisito CFU.{i}"
+
+        if ssd_col in row and cfu_col in row:
+            if pd.notna(row[ssd_col]) and pd.notna(row[cfu_col]):
+                ssd_text = str(row[ssd_col]).replace("DI CUI ALMENO -->", "").strip()
+                cfu_value = int(float(row[cfu_col]))
+
+                credit_requirements.append(f"[{ssd_text}] {cfu_value}")
 
     return credit_requirements
 
@@ -143,7 +160,7 @@ def evaluate_course(student, row):
             })
 
     return {
-        "Corso": row["Nome CDL"],
+        "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
         "Compatibilità": compatibility,
         "CFU coperti": total_covered_cfu,
         "CFU richiesti": total_required_cfu,
