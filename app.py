@@ -296,25 +296,26 @@ ranking_view = ranking[[
 # )
 for _, row in ranking.head(10).iterrows():
 
-    st.markdown("---")
+    cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
     st.markdown(
-    f"""
-    <div style="
-        border:1px solid #ddd;
-        border-radius:15px;
-        padding:20px;
-        margin-bottom:15px;
-        background-color:#fafafa;
-    ">
-        <h3>{row['Corso']}</h3>
-        <p>🏛️ <b>{row['Università']}</b></p>
-        <p>📘 {row['Codice']}</p>
-        <h2>🎯 Compatibilità {row['Compatibilità']}%</h2>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+        f"""
+        <div style="
+            border:1px solid #ddd;
+            border-radius:15px;
+            padding:22px;
+            margin-bottom:18px;
+            background-color:#fafafa;
+        ">
+            <h3>{row['Corso']}</h3>
+            <p>🏛️ <b>{row['Università']}</b></p>
+            <p>📘 {row['Codice']}</p>
+            <h2>🎯 Compatibilità {row['Compatibilità']}%</h2>
+            <p style="font-size:18px;">⚠️ Ti mancano <b>{cfu_mancanti:.0f} CFU</b></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     if row["Compatibilità"] == 100:
         st.success("Accesso pienamente compatibile")
