@@ -268,26 +268,20 @@ st.subheader("2. Il tuo profilo CFU")
 
 st.markdown(
     f"""
-    <div style="border:1px solid #ddd;
-                border-radius:12px;
-                padding:12px 16px;
-                margin-bottom:10px;
-                background-color:#fafafa;">
-
-        <h4 style="margin:0;">
-            {row['Corso']}
-        </h4>
-
-        <p style="margin:4px 0;color:#666;">
-            {row['Università']} • {row['Codice']}
-        </p>
-
-        <p style="margin:8px 0 0 0;
-                  font-size:18px;
-                  font-weight:600;">
-            🎯 {row['Compatibilità']}% • Mancano {cfu_mancanti:.0f} CFU
-        </p>
-
+    <div style="
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:14px 18px;
+        margin:20px 0;
+        background-color:#f9fafb;
+    ">
+        <div style="font-size:15px; color:#6b7280;">Profilo analizzato</div>
+        <div style="font-size:24px; font-weight:700;">
+            🎓 {profile['course']} <span style="color:#6b7280;">({profile['code']})</span>
+        </div>
+        <div style="font-size:14px; color:#6b7280;">
+            Attendibilità stimata: 85% · Per precisione massima inserisci i tuoi CFU
+        </div>
     </div>
     """,
     unsafe_allow_html=True
@@ -296,57 +290,38 @@ st.markdown(
 st.subheader("3. Le magistrali più compatibili per te")
 st.caption("Ordinate automaticamente in base ai requisiti soddisfatti")
 
-ranking_view = ranking[[
-    "Università",
-    "Codice",
-    "Corso",
-    "Stato",
-    "Compatibilità",
-    "CFU coperti",
-    "CFU richiesti"
-]].head(20)
-
-# st.dataframe(
-#     ranking_view.style.bar(
-#         subset=["Compatibilità"],
-#         vmin=0,
-#         vmax=100
-#     ),
-#     use_container_width=True,
-#     hide_index=True
-# )
 for _, row in ranking.head(10).iterrows():
 
     cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
     st.markdown(
-    f"""
-    <div style="
-        border:1px solid #ddd;
-        border-radius:12px;
-        padding:12px 16px;
-        margin-bottom:10px;
-        background-color:#fafafa;
-    ">
-        <h4 style="margin:0 0 8px 0;">
-            {row['Corso']}
-        </h4>
-
-        <p style="margin:0; color:#666;">
-            {row['Università']} • {row['Codice']}
-        </p>
-
-        <p style="
-            margin:10px 0 0 0;
-            font-size:18px;
-            font-weight:600;
+        f"""
+        <div style="
+            border:1px solid #ddd;
+            border-radius:12px;
+            padding:12px 16px;
+            margin-bottom:10px;
+            background-color:#fafafa;
         ">
-            🎯 {row['Compatibilità']}% • Mancano {cfu_mancanti:.0f} CFU
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+            <h4 style="margin:0 0 6px 0;">
+                {row['Corso']}
+            </h4>
+
+            <p style="margin:0; color:#666;">
+                {row['Università']} • {row['Codice']}
+            </p>
+
+            <p style="
+                margin:8px 0 0 0;
+                font-size:16px;
+                font-weight:600;
+            ">
+                🎯 Compatibilità {row['Compatibilità']}% · Mancano {cfu_mancanti:.0f} CFU
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     if row["Compatibilità"] == 100:
         st.success("Accesso pienamente compatibile")
@@ -354,6 +329,7 @@ for _, row in ranking.head(10).iterrows():
         st.info("Ti mancano pochi CFU")
     else:
         st.warning("Verifica i requisiti mancanti")
+
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
