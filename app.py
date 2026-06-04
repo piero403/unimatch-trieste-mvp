@@ -178,10 +178,13 @@ selected_degree = st.selectbox(
 profile = build_profile_from_course(selected_degree)
 ranking = rank_masters_for_profile(profile)
 
-st.subheader("Profilo selezionato")
-st.write("Corso:", profile["course"])
-st.write("Codice:", profile["code"])
-st.write("CFU totali:", profile["total_cfu"])
+st.subheader("2. Il tuo profilo CFU")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Corso", profile["course"])
+col2.metric("Codice", profile["code"])
+col3.metric("CFU totali", profile["total_cfu"])
 
 st.subheader("Ranking magistrali")
 
