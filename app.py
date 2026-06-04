@@ -169,13 +169,26 @@ course_options = sorted(trieste_programs["Nome CDL"].dropna().unique())
 
 st.subheader("1. Scegli il tuo corso di laurea triennale")
 
-selected_degree = st.selectbox(
-    "Da quale triennale parti?",
-    course_options,
-    placeholder="Cerca o seleziona il tuo corso..."
+input_mode = st.radio(
+    "Come vuoi inserire il tuo percorso?",
+    ["Scelgo una laurea dal database", "Inserisco manualmente i miei CFU"]
 )
+if input_mode == "Scelgo una laurea dal database":
+    selected_degree = st.selectbox(
+        "Da quale triennale parti?",
+        course_options,
+        placeholder="Cerca o seleziona il tuo corso..."
+    )
 
-profile = build_profile_from_course(selected_degree)
+    profile = build_profile_from_course(selected_degree)
+
+else:
+    st.info("Qui inseriremo manualmente i tuoi CFU per SSD.")
+    profile = None
+
+if profile is None:
+    st.stop()
+
 ranking = rank_masters_for_profile(profile)
 
 st.subheader("2. Il tuo profilo CFU")
