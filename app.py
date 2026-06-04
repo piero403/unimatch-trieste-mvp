@@ -292,40 +292,49 @@ st.caption("Ordinate automaticamente in base al tuo profilo CFU")
 
 medals = ["🥇 Miglior opportunità", "🥈 Ottima compatibilità", "🥉 Da valutare"]
 
-for index, (_, row) in enumerate(ranking.head(10).iterrows()):
+top_results = ranking.head(9).reset_index(drop=True)
 
-    cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
+for start in range(0, len(top_results), 3):
+    cols = st.columns(3)
 
-    if row["Compatibilità"] >= 80:
-        match_badge = f"🟢 MATCH {row['Compatibilità']}%"
-    elif row["Compatibilità"] >= 50:
-        match_badge = f"🟡 MATCH {row['Compatibilità']}%"
-    elif row["Compatibilità"] >= 30:
-        match_badge = f"🟠 MATCH {row['Compatibilità']}%"
-    else:
-        match_badge = f"🔴 MATCH {row['Compatibilità']}%"
+    for col_index, col in enumerate(cols):
+        result_index = start + col_index
 
-    badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
+        if result_index >= len(top_results):
+            continue
 
-    with st.container(border=True):
+        row = top_results.iloc[result_index]
 
-        st.caption(badge)
+        cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
-        st.markdown(f"### {row['Corso']}")
-
-        st.caption(f"{row['Università']}")
-
-        st.markdown(f"**{match_badge}**")
-
-        if cfu_mancanti == 0:
-            st.success("✅ Nessun CFU mancante")
+        if row["Compatibilità"] >= 80:
+            match_badge = f"🟢 MATCH {row['Compatibilità']}%"
+        elif row["Compatibilità"] >= 50:
+            match_badge = f"🟡 MATCH {row['Compatibilità']}%"
+        elif row["Compatibilità"] >= 30:
+            match_badge = f"🟠 MATCH {row['Compatibilità']}%"
         else:
-            st.warning(f"⚠️ Ti mancano {cfu_mancanti:.0f} CFU")
+            match_badge = f"🔴 MATCH {row['Compatibilità']}%"
 
-        st.link_button(
-            "Scopri il corso",
-            "https://www.google.com"
-        )
+        badge = medals[result_index] if result_index < 3 else "🎓 Opportunità formativa"
+
+        with col:
+            with st.container(border=True):
+                st.caption(badge)
+                st.markdown(f"#### {row['Corso']}")
+                st.caption(row["Università"])
+
+                st.markdown(f"**{match_badge}**")
+
+                if cfu_mancanti == 0:
+                    st.success("✅ Nessun CFU mancante")
+                else:
+                    st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
+
+                st.link_button(
+                    "Scopri il corso",
+                    "https://www.google.com"
+                )
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
