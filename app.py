@@ -167,7 +167,13 @@ def rank_masters_for_profile(profile):
 
 course_options = sorted(trieste_programs["Nome CDL"].dropna().unique())
 
-selected_degree = st.selectbox("Seleziona corso triennale", course_options)
+st.subheader("1. Scegli il tuo corso di laurea triennale")
+
+selected_degree = st.selectbox(
+    "Da quale triennale parti?",
+    course_options,
+    placeholder="Cerca o seleziona il tuo corso..."
+)
 
 profile = build_profile_from_course(selected_degree)
 ranking = rank_masters_for_profile(profile)
