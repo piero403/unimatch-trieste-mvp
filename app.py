@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 
-st.set_page_config(page_title="UniMatch Trieste MVP", layout="wide")
+st.set_page_config(page_title="UniMatch Trieste MVP", layout="centered")
 st.title("🎓 UniMatch")
 st.caption("Scopri le lauree magistrali compatibili con il tuo percorso")
 st.markdown("---")
@@ -287,47 +287,38 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-content_col, _ = st.columns([1, 2.2])
+st.subheader("3. Le migliori opportunità per te")
+st.caption("Ordinate automaticamente in base al tuo profilo CFU")
 
-with content_col:
+medals = ["🥇 Miglior opportunità", "🥈 Ottima compatibilità", "🥉 Da valutare"]
 
-    st.subheader("3. Le migliori opportunità per te")
-    st.caption("Ordinate automaticamente in base al tuo profilo CFU")
+for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
-    medals = ["🥇 Miglior opportunità", "🥈 Ottima compatibilità", "🥉 Da valutare"]
+    cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
-    for index, (_, row) in enumerate(ranking.head(10).iterrows()):
+    if row["Compatibilità"] >= 80:
+        match_badge = f"🟢 MATCH {row['Compatibilità']}%"
+    elif row["Compatibilità"] >= 50:
+        match_badge = f"🟡 MATCH {row['Compatibilità']}%"
+    elif row["Compatibilità"] >= 30:
+        match_badge = f"🟠 MATCH {row['Compatibilità']}%"
+    else:
+        match_badge = f"🔴 MATCH {row['Compatibilità']}%"
 
-        cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
+    badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
-        if row["Compatibilità"] >= 80:
-            match_badge = f"🟢 MATCH {row['Compatibilità']}%"
-        elif row["Compatibilità"] >= 50:
-            match_badge = f"🟡 MATCH {row['Compatibilità']}%"
-        elif row["Compatibilità"] >= 30:
-            match_badge = f"🟠 MATCH {row['Compatibilità']}%"
+    with st.container(border=True):
+        st.caption(badge)
+        st.markdown(f"### {row['Corso']}")
+        st.caption(row["Università"])
+        st.markdown(f"**{match_badge}**")
+
+        if cfu_mancanti == 0:
+            st.success("✅ Nessun CFU mancante")
         else:
-            match_badge = f"🔴 MATCH {row['Compatibilità']}%"
+            st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
 
-        badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
-
-        with st.container(border=True):
-
-            st.caption(badge)
-            st.markdown(f"### {row['Corso']}")
-            st.caption(row["Università"])
-
-            st.markdown(f"**{match_badge}**")
-
-            if cfu_mancanti == 0:
-                st.success("✅ Nessun CFU mancante")
-            else:
-                st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
-
-            st.link_button(
-                "Scopri il corso",
-                "https://www.google.com"
-            )
+        st.link_button("Scopri il corso", "https://www.google.com")
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
