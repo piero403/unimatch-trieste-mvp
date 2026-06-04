@@ -292,18 +292,11 @@ st.caption("Ordinate automaticamente in base al tuo profilo CFU")
 
 medals = ["🥇 Miglior opportunità", "🥈 Ottima compatibilità", "🥉 Da valutare"]
 
-top_results = ranking.head(9).reset_index(drop=True)
+left_space, card_col, right_space = st.columns([1.2, 1.6, 1.2])
 
-for start in range(0, len(top_results), 3):
-    cols = st.columns(3)
+with card_col:
 
-    for col_index, col in enumerate(cols):
-        result_index = start + col_index
-
-        if result_index >= len(top_results):
-            continue
-
-        row = top_results.iloc[result_index]
+    for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
         cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
@@ -316,25 +309,25 @@ for start in range(0, len(top_results), 3):
         else:
             match_badge = f"🔴 MATCH {row['Compatibilità']}%"
 
-        badge = medals[result_index] if result_index < 3 else "🎓 Opportunità formativa"
+        badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
-        with col:
-            with st.container(border=True):
-                st.caption(badge)
-                st.markdown(f"#### {row['Corso']}")
-                st.caption(row["Università"])
+        with st.container(border=True):
 
-                st.markdown(f"**{match_badge}**")
+            st.caption(badge)
+            st.markdown(f"### {row['Corso']}")
+            st.caption(row["Università"])
 
-                if cfu_mancanti == 0:
-                    st.success("✅ Nessun CFU mancante")
-                else:
-                    st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
+            st.markdown(f"**{match_badge}**")
 
-                st.link_button(
-                    "Scopri il corso",
-                    "https://www.google.com"
-                )
+            if cfu_mancanti == 0:
+                st.success("✅ Nessun CFU mancante")
+            else:
+                st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
+
+            st.link_button(
+                "Scopri il corso",
+                "https://www.google.com"
+            )
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
