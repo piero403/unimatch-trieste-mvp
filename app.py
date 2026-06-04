@@ -292,7 +292,7 @@ st.caption("Ordinate automaticamente in base al tuo profilo CFU")
 
 medals = ["🥇 Miglior opportunità", "🥈 Ottima compatibilità", "🥉 Da valutare"]
 
-left_space, card_col, right_space = st.columns([1.2, 1.6, 1.2])
+card_col, _ = st.columns([1.3, 2])
 
 with card_col:
 
