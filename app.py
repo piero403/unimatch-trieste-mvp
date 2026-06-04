@@ -160,14 +160,16 @@ def evaluate_course(student, row):
             })
 
     return {
-        "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
-        "Compatibilità": compatibility,
-        "CFU coperti": total_covered_cfu,
-        "CFU richiesti": total_required_cfu,
-        "Requisiti soddisfatti": sum(r["ok"] for r in results),
-        "Requisiti totali": len(results),
-        "Mancanze": missing
-    }
+    "Università": row["Università"] if "Università" in row else "",
+    "Codice": row["Laurea Magistrale"] if "Laurea Magistrale" in row else "",
+    "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
+    "Compatibilità": compatibility,
+    "CFU coperti": total_covered_cfu,
+    "CFU richiesti": total_required_cfu,
+    "Requisiti soddisfatti": sum(r["ok"] for r in results),
+    "Requisiti totali": len(results),
+    "Mancanze": missing
+}
 
 def status_label(row):
     if row["Requisiti soddisfatti"] == row["Requisiti totali"]:
@@ -274,6 +276,8 @@ st.subheader("3. Le magistrali più compatibili per te")
 st.caption("Ordinate automaticamente in base ai requisiti soddisfatti")
 
 ranking_view = ranking[[
+    "Università",
+    "Codice",
     "Corso",
     "Stato",
     "Compatibilità",
