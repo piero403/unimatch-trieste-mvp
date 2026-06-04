@@ -186,31 +186,31 @@ else:
     st.subheader("Inserisci manualmente i tuoi CFU")
     st.caption("Aggiungi solo gli SSD che hai nel tuo piano di studi.")
 
-available_ssds = sorted(ssd_cols)
+    available_ssds = sorted(ssd_cols)
 
-manual_rows = st.data_editor(
-    pd.DataFrame([
-        {"SSD": None, "CFU": 0.0},
-        {"SSD": None, "CFU": 0.0},
-        {"SSD": None, "CFU": 0.0}
-    ]),
-    num_rows="dynamic",
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "SSD": st.column_config.SelectboxColumn(
-            "SSD",
-            options=available_ssds,
-            required=False
-        ),
-        "CFU": st.column_config.NumberColumn(
-            "CFU",
-            min_value=0,
-            max_value=60,
-            step=1
-        )
-    }
-)
+    manual_rows = st.data_editor(
+        pd.DataFrame([
+            {"SSD": None, "CFU": 0.0},
+            {"SSD": None, "CFU": 0.0},
+            {"SSD": None, "CFU": 0.0}
+        ]),
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "SSD": st.column_config.SelectboxColumn(
+                "SSD",
+                options=available_ssds,
+                required=False
+            ),
+            "CFU": st.column_config.NumberColumn(
+                "CFU",
+                min_value=0,
+                max_value=60,
+                step=1
+            )
+        }
+    )
 
     manual_cfu = {}
 
@@ -218,7 +218,7 @@ manual_rows = st.data_editor(
         ssd = row["SSD"]
         cfu = row["CFU"]
 
-        if ssd != "" and pd.notna(cfu) and cfu > 0:
+        if pd.notna(ssd) and pd.notna(cfu) and cfu > 0:
             manual_cfu[ssd] = float(cfu)
 
     profile = {
