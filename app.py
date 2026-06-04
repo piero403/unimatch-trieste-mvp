@@ -3,7 +3,9 @@ import pandas as pd
 import re
 
 st.set_page_config(page_title="UniMatch Trieste MVP", layout="wide")
-st.title("UniMatch — MVP Trieste")
+st.title("🎓 UniMatch")
+st.caption("Scopri le lauree magistrali compatibili con il tuo percorso")
+st.markdown("---")
 
 excel_file = "Database (3).xlsx"
 
