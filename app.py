@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 
-st.set_page_config(page_title="UniMatch Trieste MVP", layout="centered")
+st.set_page_config(page_title="UniMatch Trieste MVP", layout="wide")
 st.title("🎓 UniMatch")
 st.caption("Scopri le lauree magistrali compatibili con il tuo percorso")
 st.markdown("---")
@@ -287,14 +287,14 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.subheader("3. Le migliori opportunità per te")
-st.caption("Ordinate automaticamente in base al tuo profilo CFU")
+content_col, _ = st.columns([1, 2.2])
 
-medals = ["🥇 Miglior opportunità", "🥈 Ottima compatibilità", "🥉 Da valutare"]
+with content_col:
 
-card_col, _ = st.columns([1.3, 2])
+    st.subheader("3. Le migliori opportunità per te")
+    st.caption("Ordinate automaticamente in base al tuo profilo CFU")
 
-with card_col:
+    medals = ["🥇 Miglior opportunità", "🥈 Ottima compatibilità", "🥉 Da valutare"]
 
     for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
