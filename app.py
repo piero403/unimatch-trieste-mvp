@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 
-st.set_page_config(page_title="UniMatch Trieste MVP", layout="wide")
+st.set_page_config(page_title="UniMatch Trieste MVP", layout="centered")
 st.title("🎓 UniMatch")
 st.caption("Scopri le lauree magistrali compatibili con il tuo percorso")
 st.markdown("---")
