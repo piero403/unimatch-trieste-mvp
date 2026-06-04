@@ -186,19 +186,22 @@ col1.metric("Corso", profile["course"])
 col2.metric("Codice", profile["code"])
 col3.metric("CFU totali", profile["total_cfu"])
 
-st.subheader("Ranking magistrali")
+st.subheader("3. Le magistrali più compatibili per te")
+st.caption("Ordinate automaticamente in base ai requisiti soddisfatti")
 
 ranking_view = ranking[[
     "Corso",
     "Stato",
     "Compatibilità",
     "CFU coperti",
-    "CFU richiesti",
-    "Requisiti soddisfatti",
-    "Requisiti totali"
+    "CFU richiesti"
 ]].head(20)
 
-st.write(ranking_view.to_html(index=False), unsafe_allow_html=True)
+st.dataframe(
+    ranking_view,
+    use_container_width=True,
+    hide_index=True
+)
 
 st.subheader("Dettaglio mancanze")
 
