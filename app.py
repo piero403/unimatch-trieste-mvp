@@ -320,7 +320,7 @@ for _, row in ranking.head(10).iterrows():
         ">
             <h3>{row['Corso']}</h3>
             <p>🏛️ <b>{row['Università']}</b></p>
-            <p>📘 {row['Codice']}</p>
+            <p><b>Codice:</b> {row['Codice']}</p>
             <h2>🎯 Compatibilità {row['Compatibilità']}%</h2>
             <p style="font-size:18px;">⚠️ Ti mancano <b>{cfu_mancanti:.0f} CFU</b></p>
         </div>
