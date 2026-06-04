@@ -206,6 +206,10 @@ st.dataframe(
     use_container_width=True,
     hide_index=True
 )
+st.info(
+    "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
+    "Controlla sempre il bando ufficiale del corso prima di iscriverti."
+)
 
 st.subheader("Dettaglio mancanze")
 
