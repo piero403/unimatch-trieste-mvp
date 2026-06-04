@@ -313,61 +313,24 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
     with st.container(border=True):
 
-        st.markdown(f"**{badge}**")
+        col1, col2 = st.columns([4, 1])
 
-        st.markdown(
-            f"""
-            <div style="
-                display:flex;
-                justify-content:space-between;
-                align-items:flex-start;
-                gap:20px;
-                margin-top:4px;
-            ">
-                <div>
-                    <div style="
-                        font-size:24px;
-                        font-weight:800;
-                        line-height:1.25;
-                        color:#111827;
-                    ">
-                        {row['Corso']}
-                    </div>
-                    <div style="
-                        font-size:13px;
-                        color:#6b7280;
-                        margin-top:6px;
-                    ">
-                        {row['Università']} • {row['Codice']}
-                    </div>
-                </div>
+        with col1:
+            st.caption(badge)
+            st.markdown(f"### {row['Corso']}")
+            st.caption(f"{row['Università']} • {row['Codice']}")
 
-                <div style="
-                    min-width:130px;
-                    text-align:center;
-                    font-size:18px;
-                    font-weight:800;
-                    padding:8px 12px;
-                    border-radius:999px;
-                    background-color:#f9fafb;
-                    border:1px solid #e5e7eb;
-                    color:#111827;
-                ">
-                    {match_badge}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            if cfu_mancanti == 0:
+                st.success("✅ Non risultano CFU mancanti")
+            else:
+                st.warning(f"⚠️ Ti mancano **{cfu_mancanti:.0f} CFU**")
 
-        if cfu_mancanti == 0:
-            st.success("✅ Non risultano CFU mancanti")
-        else:
-            st.warning(f"⚠️ Ti mancano **{cfu_mancanti:.0f} CFU**")
+            st.caption(status_message)
+            st.link_button("Scopri il corso", "https://www.google.com")
 
-        st.caption(status_message)
-
-        st.link_button("Scopri il corso", "https://www.google.com")
+        with col2:
+            st.metric("Compatibilità", f"{row['Compatibilità']}%")
+            st.markdown(match_badge)
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
