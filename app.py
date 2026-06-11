@@ -2,9 +2,11 @@ import streamlit as st
 import pandas as pd
 import re
 
-st.set_page_config(page_title="UniMatch Trieste MVP", layout="centered")
-st.title("🎓 UniMatch")
-st.caption("Scopri le lauree magistrali compatibili con il tuo percorso")
+st.set_page_config(page_title="UniMatch", layout="centered")
+
+st.markdown("# 🎓 UniMatch")
+st.markdown("### Trova le magistrali online compatibili con il tuo percorso")
+st.caption("Matching basato su classe di laurea, SSD e CFU dichiarati nei requisiti di accesso.")
 st.markdown("---")
 
 excel_file = "Database (3).xlsx"
@@ -160,17 +162,17 @@ def evaluate_course(student, row):
             })
 
     return {
-    "Università": row["Università"] if "Università" in row else "",
-    "Codice": row["Laurea Magistrale"] if "Laurea Magistrale" in row else "",
-    "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
-    "URL": row["Link requisiti di accesso"] if "Link requisiti di accesso" in row else "",
-    "Compatibilità": compatibility,
-    "CFU coperti": total_covered_cfu,
-    "CFU richiesti": total_required_cfu,
-    "Requisiti soddisfatti": sum(r["ok"] for r in results),
-    "Requisiti totali": len(results),
-    "Mancanze": missing
-}
+        "Università": row["Università"] if "Università" in row else "",
+        "Codice": row["Laurea Magistrale"] if "Laurea Magistrale" in row else "",
+        "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
+        "URL": row["Link requisiti di accesso"] if "Link requisiti di accesso" in row else "",
+        "Compatibilità": compatibility,
+        "CFU coperti": total_covered_cfu,
+        "CFU richiesti": total_required_cfu,
+        "Requisiti soddisfatti": sum(r["ok"] for r in results),
+        "Requisiti totali": len(results),
+        "Mancanze": missing
+    }
 
 def status_label(row):
     if row["Requisiti soddisfatti"] == row["Requisiti totali"]:
@@ -265,6 +267,10 @@ if profile is None:
 
 ranking = rank_masters_for_profile(profile)
 
+if ranking.empty:
+    st.warning("Nessuna magistrale valutabile con i dati disponibili.")
+    st.stop()
+
 st.subheader("2. Il tuo profilo CFU")
 
 st.markdown(
@@ -299,25 +305,32 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
     if row["Compatibilità"] >= 80:
         match_badge = f"✅ MATCH {row['Compatibilità']}%"
+        alert = st.success
     elif row["Compatibilità"] >= 50:
         match_badge = f"🟡 MATCH {row['Compatibilità']}%"
+        alert = st.warning
     elif row["Compatibilità"] >= 30:
         match_badge = f"🟠 MATCH {row['Compatibilità']}%"
+        alert = st.warning
     else:
         match_badge = f"🔴 MATCH {row['Compatibilità']}%"
+        alert = st.error
 
     badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
     with st.container(border=True):
         st.caption(badge)
 
-        st.markdown(f"### 🎓 {row['Corso']}")
-        st.caption(f"🏛️ {row['Università']}")
+        left, right = st.columns([4, 1])
 
-        st.markdown(f"**{match_badge}**")
+        with left:
+            st.markdown(f"### 🎓 {row['Corso']}")
+            st.caption(f"🏛️ {row['Università']}")
+
+        with right:
+            alert(match_badge)
 
         col1, col2, col3 = st.columns(3)
-
         col1.metric("Coperti", f"{row['CFU coperti']:.0f}")
         col2.metric("Richiesti", f"{row['CFU richiesti']:.0f}")
         col3.metric("Mancano", f"{max(cfu_mancanti, 0):.0f}")
@@ -333,6 +346,7 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
                 row["URL"],
                 use_container_width=True
             )
+
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
