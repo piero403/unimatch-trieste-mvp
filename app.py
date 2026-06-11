@@ -298,36 +298,23 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
     cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
     if row["Compatibilità"] >= 80:
-        colore = "#16a34a"
-        match_badge = f"MATCH {row['Compatibilità']}%"
+        match_badge = f"✅ MATCH {row['Compatibilità']}%"
     elif row["Compatibilità"] >= 50:
-        colore = "#ca8a04"
-        match_badge = f"MATCH {row['Compatibilità']}%"
+        match_badge = f"🟡 MATCH {row['Compatibilità']}%"
     elif row["Compatibilità"] >= 30:
-        colore = "#ea580c"
-        match_badge = f"MATCH {row['Compatibilità']}%"
+        match_badge = f"🟠 MATCH {row['Compatibilità']}%"
     else:
-        colore = "#dc2626"
-        match_badge = f"MATCH {row['Compatibilità']}%"
+        match_badge = f"🔴 MATCH {row['Compatibilità']}%"
 
     badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
     with st.container(border=True):
+        st.caption(badge)
 
-    st.caption(badge)
+        st.markdown(f"### 🎓 {row['Corso']}")
+        st.caption(f"🏛️ {row['Università']}")
 
-    st.markdown(f"### 🎓 {row['Corso']}")
-
-    st.markdown(
-        f"##### 🏛️ {row['Università']}"
-    )
-
-    if row["Compatibilità"] >= 80:
-        st.success(f"MATCH {row['Compatibilità']}%")
-    elif row["Compatibilità"] >= 50:
-        st.warning(f"MATCH {row['Compatibilità']}%")
-    else:
-        st.error(f"MATCH {row['Compatibilità']}%")
+        st.markdown(f"**{match_badge}**")
 
         col1, col2, col3 = st.columns(3)
 
@@ -341,7 +328,11 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
             st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
 
         if pd.notna(row["URL"]) and row["URL"] != "":
-            st.link_button("Vai al sito ufficiale →", row["URL"])
+            st.link_button(
+                "Vai al sito ufficiale →",
+                row["URL"],
+                use_container_width=True
+            )
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
