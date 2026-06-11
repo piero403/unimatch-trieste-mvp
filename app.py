@@ -298,38 +298,72 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
     cfu_mancanti = row["CFU richiesti"] - row["CFU coperti"]
 
     if row["Compatibilità"] >= 80:
-        match_badge = f"🟢 MATCH {row['Compatibilità']}%"
+        colore = "#16a34a"
+        match_badge = f"MATCH {row['Compatibilità']}%"
     elif row["Compatibilità"] >= 50:
-        match_badge = f"🟡 MATCH {row['Compatibilità']}%"
+        colore = "#ca8a04"
+        match_badge = f"MATCH {row['Compatibilità']}%"
     elif row["Compatibilità"] >= 30:
-        match_badge = f"🟠 MATCH {row['Compatibilità']}%"
+        colore = "#ea580c"
+        match_badge = f"MATCH {row['Compatibilità']}%"
     else:
-        match_badge = f"🔴 MATCH {row['Compatibilità']}%"
+        colore = "#dc2626"
+        match_badge = f"MATCH {row['Compatibilità']}%"
 
     badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
     with st.container(border=True):
-        st.caption(badge)
+        st.markdown(
+            f"""
+            <div style="
+                border-left: 6px solid {colore};
+                padding: 10px 14px;
+                background-color: #f9fafb;
+                border-radius: 10px;
+                margin-bottom: 8px;
+            ">
+                <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">
+                    {badge}
+                </div>
 
-        st.markdown(f"## {row['Corso']}")
-        st.markdown(f"**🏛️ {row['Università']}**")
-        st.markdown(f"### {match_badge}")
+                <div style="font-size: 22px; font-weight: 750; line-height: 1.15;">
+                    🎓 {row['Corso']}
+                </div>
 
-        col1, col2 = st.columns(2)
+                <div style="font-size: 16px; font-weight: 600; color: #374151; margin-top: 4px;">
+                    🏛️ {row['Università']}
+                </div>
 
-        col1.metric("CFU coperti", f"{row['CFU coperti']:.0f}")
-        col2.metric("CFU richiesti", f"{row['CFU richiesti']:.0f}")
+                <div style="
+                    display: inline-block;
+                    margin-top: 8px;
+                    padding: 4px 10px;
+                    border-radius: 999px;
+                    background-color: {colore};
+                    color: white;
+                    font-size: 14px;
+                    font-weight: 700;
+                ">
+                    {match_badge}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric("Coperti", f"{row['CFU coperti']:.0f}")
+        col2.metric("Richiesti", f"{row['CFU richiesti']:.0f}")
+        col3.metric("Mancano", f"{max(cfu_mancanti, 0):.0f}")
 
         if cfu_mancanti == 0:
-            st.success("✅ Compatibile: nessun CFU mancante")
+            st.success("✅ Compatibile")
         else:
             st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
 
         if pd.notna(row["URL"]) and row["URL"] != "":
             st.link_button("Vai al sito ufficiale →", row["URL"])
-
-        st.markdown("---")
-
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
