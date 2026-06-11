@@ -320,7 +320,7 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
             st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
 
         if pd.notna(row["URL"]) and row["URL"] != "":
-    st.link_button("Scopri il corso", row["URL"])
+            st.link_button("Scopri il corso", row["URL"])
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
