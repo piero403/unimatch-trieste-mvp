@@ -163,6 +163,7 @@ def evaluate_course(student, row):
     "Università": row["Università"] if "Università" in row else "",
     "Codice": row["Laurea Magistrale"] if "Laurea Magistrale" in row else "",
     "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
+    "URL": row["Link requisiti di accesso"] if "Link requisiti di accesso" in row else "",
     "Compatibilità": compatibility,
     "CFU coperti": total_covered_cfu,
     "CFU richiesti": total_required_cfu,
@@ -318,7 +319,8 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
         else:
             st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
 
-        st.link_button("Scopri il corso", "https://www.google.com")
+        if pd.notna(row["URL"]) and row["URL"] != "":
+    st.link_button("Scopri il corso", row["URL"])
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
