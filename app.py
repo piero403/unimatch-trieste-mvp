@@ -8,13 +8,13 @@ st.caption("Scopri le lauree magistrali compatibili con il tuo percorso")
 st.markdown("---")
 
 excel_file = "Database (3).xlsx"
-online_file = "gruppo multiversity.xlsx"
+online_file = "db giugno26.xlsx"
 
 programs = pd.read_excel(excel_file, sheet_name="program_course")
 requirements = pd.read_excel(excel_file, sheet_name="master_requirements")
 online_requirements = pd.read_excel(
     online_file,
-    sheet_name="Online_Requisiti Magistrali"
+    sheet_name="requirements Online"
 )
 
 trieste_programs = programs[
