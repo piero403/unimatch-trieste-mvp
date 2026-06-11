@@ -310,17 +310,25 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
     with st.container(border=True):
         st.caption(badge)
-        st.markdown(f"### {row['Corso']}")
-        st.caption(row["Università"])
-        st.markdown(f"**{match_badge}**")
+
+        st.markdown(f"## {row['Corso']}")
+        st.markdown(f"**🏛️ {row['Università']}**")
+        st.markdown(f"### {match_badge}")
+
+        col1, col2 = st.columns(2)
+
+        col1.metric("CFU coperti", f"{row['CFU coperti']:.0f}")
+        col2.metric("CFU richiesti", f"{row['CFU richiesti']:.0f}")
 
         if cfu_mancanti == 0:
-            st.success("✅ Nessun CFU mancante")
+            st.success("✅ Compatibile: nessun CFU mancante")
         else:
             st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU")
 
         if pd.notna(row["URL"]) and row["URL"] != "":
-            st.link_button("Scopri il corso", row["URL"])
+            st.link_button("Vai al sito ufficiale →", row["URL"])
+
+        st.markdown("---")
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
