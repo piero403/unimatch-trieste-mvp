@@ -313,43 +313,21 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
     badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
     with st.container(border=True):
-        st.markdown(
-            f"""
-            <div style="
-                border-left: 6px solid {colore};
-                padding: 10px 14px;
-                background-color: #f9fafb;
-                border-radius: 10px;
-                margin-bottom: 8px;
-            ">
-                <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">
-                    {badge}
-                </div>
 
-                <div style="font-size: 22px; font-weight: 750; line-height: 1.15;">
-                    🎓 {row['Corso']}
-                </div>
+    st.caption(badge)
 
-                <div style="font-size: 16px; font-weight: 600; color: #374151; margin-top: 4px;">
-                    🏛️ {row['Università']}
-                </div>
+    st.markdown(f"### 🎓 {row['Corso']}")
 
-                <div style="
-                    display: inline-block;
-                    margin-top: 8px;
-                    padding: 4px 10px;
-                    border-radius: 999px;
-                    background-color: {colore};
-                    color: white;
-                    font-size: 14px;
-                    font-weight: 700;
-                ">
-                    {match_badge}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    st.markdown(
+        f"##### 🏛️ {row['Università']}"
+    )
+
+    if row["Compatibilità"] >= 80:
+        st.success(f"MATCH {row['Compatibilità']}%")
+    elif row["Compatibilità"] >= 50:
+        st.warning(f"MATCH {row['Compatibilità']}%")
+    else:
+        st.error(f"MATCH {row['Compatibilità']}%")
 
         col1, col2, col3 = st.columns(3)
 
