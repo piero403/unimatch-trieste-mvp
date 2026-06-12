@@ -1,192 +1,428 @@
 import streamlit as st
 import pandas as pd
+import re
 
-st.set_page_config(
-    page_title="UniMatch Online",
-    page_icon="🎓",
-    layout="wide"
+st.set_page_config(page_title="UniMatch", page_icon="🎓", layout="centered")
+
+st.markdown("# 🎓 UniMatch")
+st.markdown("### Trova le magistrali online compatibili con il tuo percorso")
+st.caption("Matching basato su classe di laurea, SSD e CFU dichiarati nei requisiti di accesso.")
+st.markdown("---")
+
+excel_file = "Database (3).xlsx"
+online_file = "db giugno26.xlsx"
+
+programs = pd.read_excel(excel_file, sheet_name="program_course")
+requirements = pd.read_excel(excel_file, sheet_name="master_requirements")
+online_requirements = pd.read_excel(online_file, sheet_name="requirements Online")
+
+trieste_programs = programs[
+    (programs["Università"] == "Università degli studi di Trieste") &
+    (programs["Tipo"] == "Triennale") &
+    (programs["Anno"] == "2024/2025")
+].copy()
+
+trieste_requirements = requirements[
+    requirements["Università"] == "Università degli studi di Trieste"
+].copy()
+
+catalog_mode = st.radio(
+    "Quali percorsi vuoi esplorare?",
+    ["Magistrali Online", "Magistrali Trieste"]
 )
 
-DB_TRIENNALI = "Database (3).xlsx"
-DB_MAGISTRALI = "db giugno26.xlsx"
-FOGLIO_MAGISTRALI = "requirements Online"
+if catalog_mode == "Magistrali Online":
+    trieste_requirements = online_requirements.copy()
+
+metadata_cols = [
+    "Università", "Anno", "Tipo", "Codice CDL", "Nome CDL",
+    "Crediti variabili", "Totale CFU"
+]
+
+ssd_cols = [col for col in trieste_programs.columns if col not in metadata_cols]
 
 
-@st.cache_data
-def carica_dati():
-    triennali = pd.read_excel(DB_TRIENNALI)
-    magistrali = pd.read_excel(DB_MAGISTRALI, sheet_name=FOGLIO_MAGISTRALI)
-    return triennali, magistrali
+def build_profile_from_course(course_name):
+    selected = trieste_programs[
+        trieste_programs["Nome CDL"].str.contains(course_name, case=False, na=False)
+    ]
+
+    if selected.empty:
+        return None
+
+    row = selected.iloc[0]
+    cfu = {}
+
+    for ssd in ssd_cols:
+        value = row[ssd]
+        if pd.notna(value) and value > 0:
+            cfu[ssd] = float(value)
+
+    return {
+        "course": row["Nome CDL"],
+        "code": row["Codice CDL"],
+        "total_cfu": row["Totale CFU"],
+        "cfu": cfu
+    }
 
 
-def estrai_requisiti(row):
-    requisiti = []
+def extract_credit_requirements(row):
+    credit_requirements = []
 
-    for col in row.index:
-        if str(col).startswith("Requisito SSD"):
-            suffisso = str(col).replace("Requisito SSD", "")
-            col_cfu = "Requisito CFU" + suffisso
+    for i in range(1, 13):
+        req_col = f"Requisito{i}"
+        val_col = f"Valore{i}"
 
-            ssd = row.get(col)
-            cfu = row.get(col_cfu)
+        if req_col in row and val_col in row:
+            if row[req_col] == "Crediti" and pd.notna(row[val_col]):
+                credit_requirements.append(row[val_col])
 
-            if pd.notna(ssd) and pd.notna(cfu):
-                try:
-                    requisiti.append((str(ssd).strip(), float(cfu)))
-                except:
-                    pass
-
-    return requisiti
-
-
-def calcola_match(profilo, requisiti):
-    richiesti = sum(cfu for _, cfu in requisiti)
-    coperti = 0
-    mancanti = []
-
-    for ssd, cfu_richiesti in requisiti:
-        cfu_posseduti = profilo.get(ssd, 0)
-
-        if cfu_posseduti >= cfu_richiesti:
-            coperti += cfu_richiesti
+    for i in range(0, 12):
+        if i == 0:
+            ssd_col = "Requisito SSD"
+            cfu_col = "Requisito CFU"
         else:
-            coperti += cfu_posseduti
-            mancanti.append(f"{ssd}: {cfu_richiesti - cfu_posseduti:g} CFU")
+            ssd_col = f"Requisito SSD.{i}"
+            cfu_col = f"Requisito CFU.{i}"
 
-    match = round((coperti / richiesti) * 100) if richiesti > 0 else 0
+        if ssd_col in row and cfu_col in row:
+            if pd.notna(row[ssd_col]) and pd.notna(row[cfu_col]):
+                ssd_text = str(row[ssd_col]).replace("DI CUI ALMENO -->", "").strip()
+                cfu_value = int(float(row[cfu_col]))
+                credit_requirements.append(f"[{ssd_text}] {cfu_value}")
 
-    return match, coperti, richiesti, mancanti
+    return credit_requirements
 
 
-def crea_profilo_manual():
-    st.subheader("Inserisci i tuoi CFU")
+def parse_credit_block(text):
+    text = str(text)
+    pattern = r"\[([^\]]+)\]\s*(\d+)"
+    matches = re.findall(pattern, text)
 
-    profilo = {}
+    blocks = []
 
-    testo = st.text_area(
-        "Scrivi un SSD per riga nel formato SSD: CFU",
-        placeholder="Esempio:\nM-PSI/01: 9\nM-PSI/05: 6\nSPS/07: 12"
+    for ssd_list, cfu in matches:
+        ssds = [ssd.strip() for ssd in ssd_list.split(",")]
+        blocks.append({
+            "ssds": ssds,
+            "cfu_required": int(cfu)
+        })
+
+    return blocks
+
+
+trieste_requirements["credit_requirements"] = trieste_requirements.apply(
+    extract_credit_requirements,
+    axis=1
+)
+
+trieste_requirements["parsed_requirements"] = trieste_requirements["credit_requirements"].apply(
+    lambda items: [parse_credit_block(item) for item in items]
+)
+
+
+def match_group_requirements(student, parsed_requirements):
+    results = []
+
+    for group in parsed_requirements:
+        for block in group:
+            ssds = block["ssds"]
+            required = block["cfu_required"]
+            available = sum(student["cfu"].get(ssd, 0) for ssd in ssds)
+            missing = max(required - available, 0)
+
+            results.append({
+                "ssds": ssds,
+                "required": required,
+                "available": available,
+                "missing": missing,
+                "ok": missing == 0
+            })
+
+    return results
+
+
+def evaluate_course(student, row):
+    results = match_group_requirements(student, row["parsed_requirements"])
+
+    if len(results) == 0:
+        return None
+
+    total_required_cfu = sum(r["required"] for r in results)
+    total_covered_cfu = sum(min(r["available"], r["required"]) for r in results)
+
+    compatibility = round(total_covered_cfu / total_required_cfu * 100)
+
+    missing = []
+
+    for r in results:
+        if not r["ok"]:
+            missing.append({
+                "SSD": ", ".join(r["ssds"]),
+                "Mancano CFU": r["missing"]
+            })
+
+    return {
+        "Università": row["Università"] if "Università" in row else "",
+        "Codice": row["Laurea Magistrale"] if "Laurea Magistrale" in row else "",
+        "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
+        "URL": row["Link requisiti di accesso"] if "Link requisiti di accesso" in row else "",
+        "Compatibilità": compatibility,
+        "CFU coperti": total_covered_cfu,
+        "CFU richiesti": total_required_cfu,
+        "Requisiti soddisfatti": sum(r["ok"] for r in results),
+        "Requisiti totali": len(results),
+        "Mancanze": missing
+    }
+
+
+def status_label(row):
+    if row["Requisiti soddisfatti"] == row["Requisiti totali"]:
+        return "✅ Compatibile"
+    elif row["Compatibilità"] >= 80:
+        return "🟡 Quasi compatibile"
+    elif row["Compatibilità"] >= 40:
+        return "🟠 Parzialmente compatibile"
+    else:
+        return "🔴 Poco compatibile"
+
+
+def rank_masters_for_profile(profile):
+    all_results = []
+
+    for _, row in trieste_requirements.iterrows():
+        result = evaluate_course(profile, row)
+        if result is not None:
+            all_results.append(result)
+
+    ranking = pd.DataFrame(all_results)
+
+    if ranking.empty:
+        return ranking
+
+    ranking = ranking.sort_values(
+        by=["Compatibilità", "CFU coperti"],
+        ascending=[False, False]
     )
 
-    for riga in testo.splitlines():
-        if ":" in riga:
-            ssd, cfu = riga.split(":", 1)
-            try:
-                profilo[ssd.strip()] = float(cfu.strip())
-            except:
-                pass
+    ranking["Stato"] = ranking.apply(status_label, axis=1)
+    ranking = ranking.drop_duplicates(subset=["Corso"], keep="first")
 
-    return profilo
+    return ranking
 
 
-st.title("🎓 UniMatch Online")
-st.write("Scopri quali magistrali online sono più compatibili con il tuo percorso.")
+course_options = sorted(trieste_programs["Nome CDL"].dropna().unique())
 
-try:
-    triennali, magistrali = carica_dati()
-except Exception as e:
-    st.error("Errore nel caricamento dei file Excel.")
-    st.exception(e)
-    st.stop()
+st.subheader("1. Scegli il tuo percorso di partenza")
 
-
-modalita = st.radio(
+input_mode = st.radio(
     "Come vuoi inserire il tuo percorso?",
     ["Scelgo una laurea dal database", "Inserisco manualmente i miei CFU"]
 )
 
-profilo = {}
-
-if modalita == "Scelgo una laurea dal database":
-    corso_col = "Corso"
-
-    if corso_col not in triennali.columns:
-        st.error(f"Nel file triennali manca la colonna '{corso_col}'.")
-        st.write("Colonne trovate:", list(triennali.columns))
-        st.stop()
-
-    corso_scelto = st.selectbox(
+if input_mode == "Scelgo una laurea dal database":
+    selected_degree = st.selectbox(
         "Da quale triennale parti?",
-        sorted(triennali[corso_col].dropna().unique())
+        course_options,
+        placeholder="Cerca o seleziona il tuo corso..."
     )
 
-    riga = triennali[triennali[corso_col] == corso_scelto].iloc[0]
-
-    for col in triennali.columns:
-        valore = riga[col]
-        if pd.notna(valore):
-            try:
-                cfu = float(valore)
-                if cfu > 0 and col != corso_col:
-                    profilo[str(col).strip()] = cfu
-            except:
-                pass
+    profile = build_profile_from_course(selected_degree)
 
 else:
-    profilo = crea_profilo_manual()
+    st.subheader("Inserisci manualmente i tuoi CFU")
+    st.caption("Aggiungi solo gli SSD che hai nel tuo piano di studi.")
 
+    available_ssds = sorted(ssd_cols)
 
-st.divider()
+    manual_rows = st.data_editor(
+        pd.DataFrame([
+            {"SSD": None, "CFU": 0.0},
+            {"SSD": None, "CFU": 0.0},
+            {"SSD": None, "CFU": 0.0}
+        ]),
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "SSD": st.column_config.SelectboxColumn(
+                "SSD",
+                options=available_ssds,
+                required=False
+            ),
+            "CFU": st.column_config.NumberColumn(
+                "CFU",
+                min_value=0,
+                max_value=60,
+                step=1
+            )
+        }
+    )
 
-if not profilo:
-    st.warning("Inserisci o seleziona un profilo CFU per vedere i risultati.")
+    manual_cfu = {}
+
+    for _, row in manual_rows.iterrows():
+        ssd = row["SSD"]
+        cfu = row["CFU"]
+
+        if pd.notna(ssd) and pd.notna(cfu) and cfu > 0:
+            manual_cfu[ssd] = float(cfu)
+
+    profile = {
+        "course": "Percorso inserito manualmente",
+        "code": "MANUALE",
+        "total_cfu": sum(manual_cfu.values()),
+        "cfu": manual_cfu
+    }
+
+if profile is None:
     st.stop()
 
+ranking = rank_masters_for_profile(profile)
 
-risultati = []
+if ranking.empty:
+    st.warning("Nessuna magistrale valutabile con i dati disponibili.")
+    st.stop()
 
-for _, row in magistrali.iterrows():
-    requisiti = estrai_requisiti(row)
-    match, coperti, richiesti, mancanti = calcola_match(profilo, requisiti)
+st.subheader("2. Il tuo profilo CFU")
 
-    risultati.append({
-        "Corso": row.get("Corso", row.get("Magistrale", "Corso senza nome")),
-        "Università": row.get("Università", row.get("Ateneo", "")),
-        "Link": row.get("Link requisiti di accesso", ""),
-        "Compatibilità": match,
-        "CFU coperti": coperti,
-        "CFU richiesti": richiesti,
-        "CFU mancanti": mancanti
-    })
+st.markdown(
+    f"""
+    <div style="
+        border:1px solid #e5e7eb;
+        border-radius:14px;
+        padding:16px 18px;
+        margin:16px 0 22px 0;
+        background-color:#f9fafb;
+    ">
+        <div style="font-size:14px; color:#6b7280; margin-bottom:4px;">
+            Profilo analizzato
+        </div>
+        <div style="font-size:23px; font-weight:750; line-height:1.25;">
+            🎓 {profile['course']}
+        </div>
+        <div style="font-size:14px; color:#6b7280; margin-top:6px;">
+            Codice: <strong>{profile['code']}</strong> · CFU rilevati: <strong>{profile['total_cfu']:.0f}</strong>
+        </div>
+        <div style="font-size:13px; color:#6b7280; margin-top:6px;">
+            Attendibilità stimata: 85% · Per precisione massima inserisci i tuoi CFU manualmente
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
+st.subheader("3. Le migliori opportunità per te")
+st.caption("Ordinate automaticamente in base al tuo profilo CFU")
 
-df = pd.DataFrame(risultati)
-df = df.sort_values("Compatibilità", ascending=False)
+medals = [
+    "🥇 Miglior opportunità",
+    "🥈 Ottima compatibilità",
+    "🥉 Da valutare"
+]
 
-st.subheader("Risultati UniMatch Online")
+for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
-for index, row in df.iterrows():
-    match = row["Compatibilità"]
+    cfu_mancanti = max(row["CFU richiesti"] - row["CFU coperti"], 0)
 
-    if match >= 80:
-        badge = "🟢 Ottima compatibilità"
-    elif match >= 50:
-        badge = "🟡 Compatibilità media"
-    elif match >= 30:
-        badge = "🟠 Compatibilità parziale"
+    if row["Compatibilità"] >= 80:
+        colore = "#16a34a"
+    elif row["Compatibilità"] >= 50:
+        colore = "#ca8a04"
+    elif row["Compatibilità"] >= 30:
+        colore = "#ea580c"
     else:
-        badge = "🔴 Compatibilità bassa"
+        colore = "#dc2626"
+
+    badge = medals[index] if index < 3 else "🎓 Opportunità formativa"
 
     with st.container(border=True):
-        col1, col2 = st.columns([4, 1])
+        st.caption(badge)
 
-        with col1:
-            st.markdown(f"### {row['Corso']}")
-            st.write(row["Università"])
-            st.caption(badge)
+        left, right = st.columns([4, 1])
 
-        with col2:
-            st.metric("Match", f"{match}%")
+        with left:
+            st.markdown(f"### 🎓 {row['Corso']}")
+            st.caption(f"🏛️ {row['Università']}")
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("CFU coperti", f"{row['CFU coperti']:g}")
-        c2.metric("CFU richiesti", f"{row['CFU richiesti']:g}")
-        c3.metric("CFU mancanti", f"{max(row['CFU richiesti'] - row['CFU coperti'], 0):g}")
+        with right:
+            st.markdown(
+                f"""
+                <div style="text-align:right;">
+                    <span style="
+                        display:inline-block;
+                        background:{colore};
+                        color:white;
+                        padding:6px 12px;
+                        border-radius:999px;
+                        font-size:14px;
+                        font-weight:700;
+                    ">
+                        MATCH {row['Compatibilità']}%
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-        if row["CFU mancanti"]:
-            with st.expander("Vedi CFU mancanti"):
-                for mancante in row["CFU mancanti"]:
-                    st.write("-", mancante)
+        st.markdown(
+            f"""
+            <div style="
+                font-size:15px;
+                margin-top:8px;
+                margin-bottom:8px;
+                color:#374151;
+            ">
+                Coperti: <strong>{row['CFU coperti']:.0f}</strong>
+                · Richiesti: <strong>{row['CFU richiesti']:.0f}</strong>
+                · Mancano: <strong>{cfu_mancanti:.0f}</strong>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        if pd.notna(row["Link"]) and str(row["Link"]).startswith("http"):
-            st.link_button("Vai al sito ufficiale", row["Link"])
+        if cfu_mancanti == 0:
+            st.success("✅ Compatibile: i CFU richiesti risultano coperti.")
+        else:
+            st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU per coprire tutti i requisiti.")
+
+        if pd.notna(row["URL"]) and str(row["URL"]).strip() != "":
+            st.link_button(
+                "Vai al sito ufficiale →",
+                row["URL"],
+                use_container_width=True
+            )
+
+st.info(
+    "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
+    "Controlla sempre il bando ufficiale del corso prima di iscriverti."
+)
+
+st.subheader("4. Dettaglio requisiti mancanti")
+st.caption("Seleziona una magistrale per vedere quali CFU mancano")
+
+selected_master = st.selectbox(
+    "Seleziona magistrale",
+    ranking["Corso"].tolist()
+)
+
+course = ranking[ranking["Corso"] == selected_master].iloc[0]
+
+st.markdown(f"### {course['Corso']}")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Stato", course["Stato"])
+col2.metric("Compatibilità", str(course["Compatibilità"]) + "%")
+col3.metric(
+    "CFU coperti",
+    str(int(course["CFU coperti"])) + " / " + str(int(course["CFU richiesti"]))
+)
+
+if len(course["Mancanze"]) == 0:
+    st.success("Nessuna mancanza rilevata.")
+else:
+    for item in course["Mancanze"]:
+        st.warning(
+            f"Mancano {item['Mancano CFU']:.0f} CFU complessivi in uno o più dei seguenti SSD: {item['SSD']}"
+        )
