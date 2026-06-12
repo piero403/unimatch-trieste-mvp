@@ -42,13 +42,25 @@ metadata_cols = [
 ssd_cols = [col for col in trieste_programs.columns if col not in metadata_cols]
 
 
+def normalize_degree_class(value):
+    if pd.isna(value):
+        return ""
+
+    text = str(value).upper().strip()
+    text = text.replace(" ", "")
+    text = text.replace("L-SNT", "L/SNT")
+    text = text.replace("LSNT", "L/SNT")
+
+    return text
+
+
 def course_label(row):
-    return f"{str(row['Codice CDL']).upper().strip()} · {row['Nome CDL']}"
+    code = normalize_degree_class(row["Codice CDL"])
+    return f"{code} · {row['Nome CDL']}"
 
 
 def build_profile_from_course(course_name):
     labels = trieste_programs.apply(course_label, axis=1)
-
     selected = trieste_programs[labels == course_name]
 
     if selected.empty:
@@ -64,7 +76,7 @@ def build_profile_from_course(course_name):
 
     return {
         "course": row["Nome CDL"],
-        "code": str(row["Codice CDL"]).upper().strip(),
+        "code": normalize_degree_class(row["Codice CDL"]),
         "total_cfu": row["Totale CFU"],
         "cfu": cfu
     }
@@ -152,14 +164,21 @@ def parse_degree_classes(value):
 
     text = str(value).upper()
     text = text.replace(";", ",")
-    text = text.replace("/", ",")
     text = text.replace("\n", ",")
+    text = text.replace("L-SNT", "L/SNT")
+    text = text.replace("LSNT", "L/SNT")
 
-    return [
-        item.strip()
-        for item in text.split(",")
-        if item.strip().startswith("L-")
-    ]
+    parts = [item.strip() for item in text.split(",") if item.strip() != ""]
+
+    classes = []
+
+    for item in parts:
+        item = normalize_degree_class(item)
+
+        if item.startswith("L-") or item.startswith("L/SNT"):
+            classes.append(item)
+
+    return classes
 
 
 def extract_direct_degree_classes(row):
@@ -178,7 +197,7 @@ def extract_direct_degree_classes(row):
 
 def evaluate_course(student, row):
     direct_classes = extract_direct_degree_classes(row)
-    direct_class_match = str(student["code"]).upper().strip() in direct_classes
+    direct_class_match = normalize_degree_class(student["code"]) in direct_classes
 
     results = match_group_requirements(student, row["parsed_requirements"])
 
@@ -205,7 +224,7 @@ def evaluate_course(student, row):
             })
 
     course_name = row["Nome CDL"] if "Nome CDL" in row else "Corso senza nome"
-    course_code = str(row["Codice CDL"]).upper().strip() if "Codice CDL" in row else ""
+    course_code = normalize_degree_class(row["Codice CDL"]) if "Codice CDL" in row else ""
 
     return {
         "Università": row["Università"] if "Università" in row else "",
@@ -423,36 +442,36 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
             )
 
         if row.get("Accesso diretto per classe", False):
-    st.markdown(
-        f"""
-        <div style="
-            font-size:15px;
-            margin-top:8px;
-            margin-bottom:8px;
-            color:#374151;
-        ">
-            Requisito principale soddisfatto:
-            <strong>{profile['code']}</strong> è tra le classi ammesse.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-else:
-    st.markdown(
-        f"""
-        <div style="
-            font-size:15px;
-            margin-top:8px;
-            margin-bottom:8px;
-            color:#374151;
-        ">
-            Coperti: <strong>{row['CFU coperti']:.0f}</strong>
-            · Richiesti: <strong>{row['CFU richiesti']:.0f}</strong>
-            · Mancano: <strong>{cfu_mancanti:.0f}</strong>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            st.markdown(
+                f"""
+                <div style="
+                    font-size:15px;
+                    margin-top:8px;
+                    margin-bottom:8px;
+                    color:#374151;
+                ">
+                    Requisito principale soddisfatto:
+                    <strong>{profile['code']}</strong> è tra le classi ammesse.
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"""
+                <div style="
+                    font-size:15px;
+                    margin-top:8px;
+                    margin-bottom:8px;
+                    color:#374151;
+                ">
+                    Coperti: <strong>{row['CFU coperti']:.0f}</strong>
+                    · Richiesti: <strong>{row['CFU richiesti']:.0f}</strong>
+                    · Mancano: <strong>{cfu_mancanti:.0f}</strong>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
         if row.get("Accesso diretto per classe", False):
             st.success(
@@ -494,20 +513,24 @@ col1, col2, col3 = st.columns(3)
 
 col1.metric("Stato", course["Stato"])
 col2.metric("Compatibilità", str(course["Compatibilità"]) + "%")
-col3.metric(
-    "CFU coperti",
-    str(int(course["CFU coperti"])) + " / " + str(int(course["CFU richiesti"]))
-)
+
+if course.get("Accesso diretto per classe", False):
+    col3.metric("Accesso", "Diretto")
+else:
+    col3.metric(
+        "CFU coperti",
+        str(int(course["CFU coperti"])) + " / " + str(int(course["CFU richiesti"]))
+    )
 
 if course.get("Accesso diretto per classe", False):
     st.success(
         f"Accesso diretto per classe di laurea. Classi ammesse: {course['Classi ammesse']}"
     )
-
-if len(course["Mancanze"]) == 0:
-    st.success("Nessuna mancanza rilevata.")
 else:
-    for item in course["Mancanze"]:
-        st.warning(
-            f"Mancano {item['Mancano CFU']:.0f} CFU complessivi in uno o più dei seguenti SSD: {item['SSD']}"
-        )
+    if len(course["Mancanze"]) == 0:
+        st.success("Nessuna mancanza rilevata.")
+    else:
+        for item in course["Mancanze"]:
+            st.warning(
+                f"Mancano {item['Mancano CFU']:.0f} CFU complessivi in uno o più dei seguenti SSD: {item['SSD']}"
+            )
