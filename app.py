@@ -94,64 +94,49 @@ def extract_credit_requirements(row):
     return credit_requirements
 
 
-def parse_credit_block(text):
-    text = str(text)
-    pattern = r"\[([^\]]+)\]\s*(\d+)"
-    matches = re.findall(pattern, text)
+def parse_degree_classes(value):
+    if pd.isna(value):
+        return []
 
-    blocks = []
+    text = str(value).upper()
+    text = text.replace(";", ",")
+    text = text.replace("/", ",")
+    text = text.replace("\n", ",")
 
-    for ssd_list, cfu in matches:
-        ssds = [ssd.strip() for ssd in ssd_list.split(",")]
-        blocks.append({
-            "ssds": ssds,
-            "cfu_required": int(cfu)
-        })
-
-    return blocks
-
-
-trieste_requirements["credit_requirements"] = trieste_requirements.apply(
-    extract_credit_requirements,
-    axis=1
-)
-
-trieste_requirements["parsed_requirements"] = trieste_requirements["credit_requirements"].apply(
-    lambda items: [parse_credit_block(item) for item in items]
-)
-
-
-def match_group_requirements(student, parsed_requirements):
-    results = []
-
-    for group in parsed_requirements:
-        for block in group:
-            ssds = block["ssds"]
-            required = block["cfu_required"]
-            available = sum(student["cfu"].get(ssd, 0) for ssd in ssds)
-            missing = max(required - available, 0)
-
-            results.append({
-                "ssds": ssds,
-                "required": required,
-                "available": available,
-                "missing": missing,
-                "ok": missing == 0
-            })
-
-    return results
+    return [
+        item.strip()
+        for item in text.split(",")
+        if item.strip().startswith("L-")
+    ]
 
 
 def evaluate_course(student, row):
+    direct_classes = []
+
+    for i in range(1, 13):
+        req_col = f"Requisito{i}"
+        val_col = f"Valore{i}"
+
+        if req_col in row and val_col in row:
+            if str(row[req_col]).strip().lower() == "laurea":
+                direct_classes.extend(parse_degree_classes(row[val_col]))
+
+    direct_class_match = str(student["code"]).upper().strip() in direct_classes
+
     results = match_group_requirements(student, row["parsed_requirements"])
 
-    if len(results) == 0:
+    if len(results) == 0 and not direct_class_match:
         return None
 
     total_required_cfu = sum(r["required"] for r in results)
     total_covered_cfu = sum(min(r["available"], r["required"]) for r in results)
 
-    compatibility = round(total_covered_cfu / total_required_cfu * 100)
+    if direct_class_match:
+        compatibility = 100
+    elif total_required_cfu > 0:
+        compatibility = round(total_covered_cfu / total_required_cfu * 100)
+    else:
+        compatibility = 0
 
     missing = []
 
@@ -164,7 +149,7 @@ def evaluate_course(student, row):
 
     return {
         "Università": row["Università"] if "Università" in row else "",
-        "Codice": row["Laurea Magistrale"] if "Laurea Magistrale" in row else "",
+        "Codice": row["Codice CDL"] if "Codice CDL" in row else "",
         "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
         "URL": row["Link requisiti di accesso"] if "Link requisiti di accesso" in row else "",
         "Compatibilità": compatibility,
@@ -172,13 +157,18 @@ def evaluate_course(student, row):
         "CFU richiesti": total_required_cfu,
         "Requisiti soddisfatti": sum(r["ok"] for r in results),
         "Requisiti totali": len(results),
-        "Mancanze": missing
+        "Mancanze": missing,
+        "Accesso diretto per classe": direct_class_match,
+        "Classi ammesse": ", ".join(sorted(set(direct_classes)))
     }
 
 
 def status_label(row):
+    if row.get("Accesso diretto per classe", False):
+        return "✅ Accesso diretto per classe"
+
     if row["Requisiti soddisfatti"] == row["Requisiti totali"]:
-        return "✅ Compatibile"
+        return "✅ Compatibile per CFU"
     elif row["Compatibilità"] >= 80:
         return "🟡 Quasi compatibile"
     elif row["Compatibilità"] >= 40:
@@ -381,7 +371,9 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
             unsafe_allow_html=True
         )
 
-        if cfu_mancanti == 0:
+        if row.get("Accesso diretto per classe", False):
+            st.success("✅ Accesso diretto: la tua classe di laurea è ammessa.")
+        elif cfu_mancanti == 0:
             st.success("✅ Compatibile: i CFU richiesti risultano coperti.")
         else:
             st.warning(f"⚠️ Mancano {cfu_mancanti:.0f} CFU per coprire tutti i requisiti.")
