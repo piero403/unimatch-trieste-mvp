@@ -422,21 +422,37 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
                 unsafe_allow_html=True
             )
 
-        st.markdown(
-            f"""
-            <div style="
-                font-size:15px;
-                margin-top:8px;
-                margin-bottom:8px;
-                color:#374151;
-            ">
-                Coperti: <strong>{row['CFU coperti']:.0f}</strong>
-                · Richiesti: <strong>{row['CFU richiesti']:.0f}</strong>
-                · Mancano: <strong>{cfu_mancanti:.0f}</strong>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        if row.get("Accesso diretto per classe", False):
+    st.markdown(
+        f"""
+        <div style="
+            font-size:15px;
+            margin-top:8px;
+            margin-bottom:8px;
+            color:#374151;
+        ">
+            Requisito principale soddisfatto:
+            <strong>{profile['code']}</strong> è tra le classi ammesse.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown(
+        f"""
+        <div style="
+            font-size:15px;
+            margin-top:8px;
+            margin-bottom:8px;
+            color:#374151;
+        ">
+            Coperti: <strong>{row['CFU coperti']:.0f}</strong>
+            · Richiesti: <strong>{row['CFU richiesti']:.0f}</strong>
+            · Mancano: <strong>{cfu_mancanti:.0f}</strong>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
         if row.get("Accesso diretto per classe", False):
             st.success(
