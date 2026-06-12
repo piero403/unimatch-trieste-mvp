@@ -60,7 +60,7 @@ def build_profile_from_course(course_name):
 
     return {
         "course": row["Nome CDL"],
-        "code": row["Codice CDL"],
+        "code": str(row["Codice CDL"]).upper().strip(),
         "total_cfu": row["Totale CFU"],
         "cfu": cfu
     }
@@ -74,7 +74,7 @@ def extract_credit_requirements(row):
         val_col = f"Valore{i}"
 
         if req_col in row and val_col in row:
-            if row[req_col] == "Crediti" and pd.notna(row[val_col]):
+            if str(row[req_col]).strip().lower() == "crediti" and pd.notna(row[val_col]):
                 credit_requirements.append(row[val_col])
 
     for i in range(0, 12):
@@ -94,6 +94,54 @@ def extract_credit_requirements(row):
     return credit_requirements
 
 
+def parse_credit_block(text):
+    text = str(text)
+    pattern = r"\[([^\]]+)\]\s*(\d+)"
+    matches = re.findall(pattern, text)
+
+    blocks = []
+
+    for ssd_list, cfu in matches:
+        ssds = [ssd.strip() for ssd in ssd_list.split(",")]
+        blocks.append({
+            "ssds": ssds,
+            "cfu_required": int(cfu)
+        })
+
+    return blocks
+
+
+trieste_requirements["credit_requirements"] = trieste_requirements.apply(
+    extract_credit_requirements,
+    axis=1
+)
+
+trieste_requirements["parsed_requirements"] = trieste_requirements["credit_requirements"].apply(
+    lambda items: [parse_credit_block(item) for item in items]
+)
+
+
+def match_group_requirements(student, parsed_requirements):
+    results = []
+
+    for group in parsed_requirements:
+        for block in group:
+            ssds = block["ssds"]
+            required = block["cfu_required"]
+            available = sum(student["cfu"].get(ssd, 0) for ssd in ssds)
+            missing = max(required - available, 0)
+
+            results.append({
+                "ssds": ssds,
+                "required": required,
+                "available": available,
+                "missing": missing,
+                "ok": missing == 0
+            })
+
+    return results
+
+
 def parse_degree_classes(value):
     if pd.isna(value):
         return []
@@ -110,7 +158,7 @@ def parse_degree_classes(value):
     ]
 
 
-def evaluate_course(student, row):
+def extract_direct_degree_classes(row):
     direct_classes = []
 
     for i in range(1, 13):
@@ -121,6 +169,11 @@ def evaluate_course(student, row):
             if str(row[req_col]).strip().lower() == "laurea":
                 direct_classes.extend(parse_degree_classes(row[val_col]))
 
+    return sorted(set(direct_classes))
+
+
+def evaluate_course(student, row):
+    direct_classes = extract_direct_degree_classes(row)
     direct_class_match = str(student["code"]).upper().strip() in direct_classes
 
     results = match_group_requirements(student, row["parsed_requirements"])
@@ -147,10 +200,17 @@ def evaluate_course(student, row):
                 "Mancano CFU": r["missing"]
             })
 
+    if "Nome CDL" in row:
+        course_name = row["Nome CDL"]
+    elif "Nome magistrale" in row:
+        course_name = row["Nome magistrale"]
+    else:
+        course_name = "Corso senza nome"
+
     return {
         "Università": row["Università"] if "Università" in row else "",
         "Codice": row["Codice CDL"] if "Codice CDL" in row else "",
-        "Corso": row["Nome CDL"] if "Nome CDL" in row else row["Nome magistrale"],
+        "Corso": course_name,
         "URL": row["Link requisiti di accesso"] if "Link requisiti di accesso" in row else "",
         "Compatibilità": compatibility,
         "CFU coperti": total_covered_cfu,
@@ -159,7 +219,7 @@ def evaluate_course(student, row):
         "Requisiti totali": len(results),
         "Mancanze": missing,
         "Accesso diretto per classe": direct_class_match,
-        "Classi ammesse": ", ".join(sorted(set(direct_classes)))
+        "Classi ammesse": ", ".join(direct_classes)
     }
 
 
@@ -292,7 +352,7 @@ st.markdown(
             🎓 {profile['course']}
         </div>
         <div style="font-size:14px; color:#6b7280; margin-top:6px;">
-            Codice: <strong>{profile['code']}</strong> · CFU rilevati: <strong>{profile['total_cfu']:.0f}</strong>
+            Classe: <strong>{profile['code']}</strong> · CFU rilevati: <strong>{profile['total_cfu']:.0f}</strong>
         </div>
         <div style="font-size:13px; color:#6b7280; margin-top:6px;">
             Attendibilità stimata: 85% · Per precisione massima inserisci i tuoi CFU manualmente
@@ -387,6 +447,7 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
+    "Se la tua classe di laurea è ammessa direttamente, UniMatch assegna compatibilità 100%. "
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
 )
 
@@ -410,6 +471,11 @@ col3.metric(
     "CFU coperti",
     str(int(course["CFU coperti"])) + " / " + str(int(course["CFU richiesti"]))
 )
+
+if course.get("Accesso diretto per classe", False):
+    st.success(
+        f"Accesso diretto per classe di laurea. Classi ammesse: {course['Classi ammesse']}"
+    )
 
 if len(course["Mancanze"]) == 0:
     st.success("Nessuna mancanza rilevata.")
