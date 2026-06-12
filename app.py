@@ -42,10 +42,14 @@ metadata_cols = [
 ssd_cols = [col for col in trieste_programs.columns if col not in metadata_cols]
 
 
+def course_label(row):
+    return f"{str(row['Codice CDL']).upper().strip()} · {row['Nome CDL']}"
+
+
 def build_profile_from_course(course_name):
-    selected = trieste_programs[
-        trieste_programs["Nome CDL"].str.contains(course_name, case=False, na=False)
-    ]
+    labels = trieste_programs.apply(course_label, axis=1)
+
+    selected = trieste_programs[labels == course_name]
 
     if selected.empty:
         return None
@@ -200,16 +204,12 @@ def evaluate_course(student, row):
                 "Mancano CFU": r["missing"]
             })
 
-    if "Nome CDL" in row:
-        course_name = row["Nome CDL"]
-    elif "Nome magistrale" in row:
-        course_name = row["Nome magistrale"]
-    else:
-        course_name = "Corso senza nome"
+    course_name = row["Nome CDL"] if "Nome CDL" in row else "Corso senza nome"
+    course_code = str(row["Codice CDL"]).upper().strip() if "Codice CDL" in row else ""
 
     return {
         "Università": row["Università"] if "Università" in row else "",
-        "Codice": row["Codice CDL"] if "Codice CDL" in row else "",
+        "Codice": course_code,
         "Corso": course_name,
         "URL": row["Link requisiti di accesso"] if "Link requisiti di accesso" in row else "",
         "Compatibilità": compatibility,
@@ -261,7 +261,9 @@ def rank_masters_for_profile(profile):
     return ranking
 
 
-course_options = sorted(trieste_programs["Nome CDL"].dropna().unique())
+course_options = sorted(
+    trieste_programs.apply(course_label, axis=1).dropna().unique()
+)
 
 st.subheader("1. Scegli il tuo percorso di partenza")
 
@@ -349,10 +351,10 @@ st.markdown(
             Profilo analizzato
         </div>
         <div style="font-size:23px; font-weight:750; line-height:1.25;">
-            🎓 {profile['course']}
+            🎓 {profile['code']} · {profile['course']}
         </div>
         <div style="font-size:14px; color:#6b7280; margin-top:6px;">
-            Classe: <strong>{profile['code']}</strong> · CFU rilevati: <strong>{profile['total_cfu']:.0f}</strong>
+            CFU rilevati: <strong>{profile['total_cfu']:.0f}</strong>
         </div>
         <div style="font-size:13px; color:#6b7280; margin-top:6px;">
             Attendibilità stimata: 85% · Per precisione massima inserisci i tuoi CFU manualmente
@@ -392,10 +394,15 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
         left, right = st.columns([4, 1])
 
         with left:
-            st.markdown(f"### 🎓 {row['Corso']}")
+            st.markdown(f"### 🎓 {row['Codice']} · {row['Corso']}")
             st.caption(f"🏛️ {row['Università']}")
 
         with right:
+            if row.get("Accesso diretto per classe", False):
+                badge_text = "ACCESSO DIRETTO"
+            else:
+                badge_text = f"MATCH {row['Compatibilità']}%"
+
             st.markdown(
                 f"""
                 <div style="text-align:right;">
@@ -408,7 +415,7 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
                         font-size:14px;
                         font-weight:700;
                     ">
-                        MATCH {row['Compatibilità']}%
+                        {badge_text}
                     </span>
                 </div>
                 """,
@@ -432,7 +439,10 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
         )
 
         if row.get("Accesso diretto per classe", False):
-            st.success("✅ Accesso diretto: la tua classe di laurea è ammessa.")
+            st.success(
+                f"✅ Accesso diretto: la tua classe di laurea è ammessa. "
+                f"Classi ammesse: {row['Classi ammesse']}."
+            )
         elif cfu_mancanti == 0:
             st.success("✅ Compatibile: i CFU richiesti risultano coperti.")
         else:
@@ -447,7 +457,7 @@ for index, (_, row) in enumerate(ranking.head(10).iterrows()):
 
 st.info(
     "La compatibilità indica quanta parte dei CFU richiesti risulta già coperta dal tuo percorso. "
-    "Se la tua classe di laurea è ammessa direttamente, UniMatch assegna compatibilità 100%. "
+    "Se la tua classe di laurea è ammessa direttamente, UniMatch segnala accesso diretto. "
     "Controlla sempre il bando ufficiale del corso prima di iscriverti."
 )
 
@@ -456,12 +466,13 @@ st.caption("Seleziona una magistrale per vedere quali CFU mancano")
 
 selected_master = st.selectbox(
     "Seleziona magistrale",
-    ranking["Corso"].tolist()
+    [f"{row['Codice']} · {row['Corso']}" for _, row in ranking.iterrows()]
 )
 
-course = ranking[ranking["Corso"] == selected_master].iloc[0]
+course_name_selected = selected_master.split(" · ", 1)[1]
+course = ranking[ranking["Corso"] == course_name_selected].iloc[0]
 
-st.markdown(f"### {course['Corso']}")
+st.markdown(f"### {course['Codice']} · {course['Corso']}")
 
 col1, col2, col3 = st.columns(3)
 
